@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Secure Incident Reporting</title>
+  <link rel="stylesheet" href="./css/style.css">
+  <script type="module" src="./js/app.js"></script>
+</head>
+<body>
+  <main id="loadingScreen" class="center-screen"><p>Checking your session…</p></main>
+
+  <main id="loginScreen" class="center-screen" hidden>
+    <section class="login-card" aria-labelledby="loginHeading">
+      <div class="brand-mark">SIR</div>
+      <h1 id="loginHeading">Secure Incident Reporting</h1>
+      <p class="muted centered">Sign in to access incident management.</p>
+      <form id="loginForm">
+        <label for="username">Username</label>
+        <input id="username" name="username" autocomplete="username" required maxlength="50">
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required>
+        <button id="loginButton" type="submit">Sign In</button>
+        <p id="loginError" role="alert" class="error"></p>
+      </form>
+      <p class="muted small">For UI-only testing, add <code>?preview=reviewer</code> to this page's URL.</p>
+    </section>
+  </main>
+
+  <div id="appScreen" hidden>
+    <header class="app-header">
+      <div class="brand"><span class="brand-mark small-brand">SIR</span><strong>Secure Incident Reporting</strong></div>
+      <div class="account-actions"><span id="currentUser"></span><span id="currentRole" class="badge"></span><button id="logoutButton" type="button" class="secondary">Log Out</button></div>
+    </header>
+    <main class="dashboard">
+      <div id="previewNotice" class="preview-notice" hidden>PREVIEW MODE — sample data only. No requests are sent to the backend. Changes are disabled.</div>
+      <h1>Incident Management</h1>
+      <p class="muted">Submit and track incidents based on your assigned role.</p>
+      <nav class="tabs" aria-label="Incident screens">
+        <button id="showList" type="button" class="tab" aria-controls="listPanel">Incident List</button>
+        <button id="showCreate" type="button" class="tab" aria-controls="createPanel">New Incident</button>
+      </nav>
+      <p id="globalMessage" class="message" role="status" aria-live="polite"></p>
+
+      <section id="listPanel" class="panel" aria-labelledby="listHeading">
+        <div class="section-heading"><h2 id="listHeading">Incidents</h2><div class="toolbar"><label for="statusFilter">Filter</label><select id="statusFilter"><option value="">All statuses</option><option value="open">Open</option><option value="under_review">Under review</option><option value="closed">Closed</option></select><button id="refreshList" type="button" class="secondary">Refresh</button></div></div>
+        <div class="table-wrap"><table><thead><tr><th scope="col">ID</th><th scope="col">Title</th><th scope="col">Status</th><th scope="col">Reported by</th><th scope="col">Created</th><th scope="col">Action</th></tr></thead><tbody id="incidentRows"></tbody></table></div>
+        <p id="listMessage" class="muted" role="status"></p>
+      </section>
+
+      <section id="createPanel" class="panel" aria-labelledby="createHeading" hidden>
+        <h2 id="createHeading">Submit New Incident</h2>
+        <form id="createForm">
+          <label for="incidentTitle">Title <span class="muted small">(maximum 200 characters)</span></label>
+          <input id="incidentTitle" name="title" maxlength="200" required>
+          <label for="incidentDescription">Description <span class="muted small">(maximum 10,000 characters)</span></label>
+          <textarea id="incidentDescription" name="description" rows="7" maxlength="10000" required></textarea>
+          <button id="submitIncident" type="submit">Submit Incident</button>
+          <p id="createMessage" class="message" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+
+      <section id="detailPanel" class="panel" aria-labelledby="detailHeading" hidden>
+        <div class="section-heading"><h2 id="detailHeading">Incident Details</h2><button id="backToList" type="button" class="secondary">Back to List</button></div>
+        <dl class="detail-grid"><div><dt>Status</dt><dd id="detailStatus"></dd></div><div><dt>Reported by</dt><dd id="detailReporter"></dd></div><div><dt>Created</dt><dd id="detailCreated"></dd></div><div><dt>Last updated</dt><dd id="detailUpdated"></dd></div></dl>
+        <h3>Description</h3><p id="detailDescription" class="preserve-lines"></p>
+        <form id="statusForm" class="subpanel" hidden><h3>Reviewer: Update Status</h3><label for="statusSelect">New status</label><select id="statusSelect"><option value="open">Open</option><option value="under_review">Under review</option><option value="closed">Closed</option></select><button type="submit">Save Status</button><p id="statusMessage" role="status" class="message"></p></form>
+        <h3>Comments</h3><div id="commentList" class="comments"></div>
+        <form id="commentForm" class="subpanel" hidden><label for="commentBody">Add a comment (maximum 5,000 characters)</label><textarea id="commentBody" rows="4" maxlength="5000" required></textarea><button type="submit">Post Comment</button><p id="commentMessage" role="status" class="message"></p></form>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
