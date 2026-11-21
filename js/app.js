@@ -1,5 +1,6 @@
 import { api } from "./api.js";
-import { startIncidents, clearIncidents } from "./incidents.js";
+import { startIncidents, clearIncidents, showIncidentPanel } from "./incidents.js";
+import { startAdmin, clearAdmin, loadUsers, loadAudit, verifyAudit, submitCreateUser, submitPassword } from "./admin.js";
 
 const $ = id => document.getElementById(id);
 const previewRole = new URLSearchParams(window.location.search).get("preview");
@@ -14,6 +15,7 @@ function screen(which) {
 function showLogin(message = "") {
   currentUser = null;
   clearIncidents();
+  clearAdmin();
   $("loginForm").reset();
   $("loginError").textContent = message;
   screen("login");
@@ -25,7 +27,9 @@ function showApp(user) {
   $("previewNotice").hidden = !demo;
   $("logoutButton").textContent = demo ? "Exit Preview" : "Log Out";
   screen("app");
-  startIncidents({ user, demo, onExpired: () => showLogin("Your session expired. Please sign in again.") });
+  const onExpired = () => showLogin("Your session expired. Please sign in again.");
+  startAdmin({ user, demo, onExpired });
+  startIncidents({ user, demo, onExpired });
 }
 $("loginForm").addEventListener("submit", async event => {
   event.preventDefault();
@@ -67,4 +71,14 @@ async function initialize() {
     showLogin(e.status === 401 ? "" : "Backend unavailable on this server. For a UI preview, add ?preview=reviewer to the URL.");
   }
 }
+// Shared navigation: the incident module owns incident panels;
+// the admin module owns user/audit/password behaviors.
+$("showPassword").addEventListener("click", () => showIncidentPanel("password"));
+$("showUsers").addEventListener("click", () => { showIncidentPanel("users"); loadUsers(); });
+$("showAudit").addEventListener("click", () => { showIncidentPanel("audit"); loadAudit(); });
+$("refreshUsers").addEventListener("click", loadUsers);
+$("refreshAudit").addEventListener("click", loadAudit);
+$("verifyAudit").addEventListener("click", verifyAudit);
+$("createUserForm").addEventListener("submit", submitCreateUser);
+$("passwordForm").addEventListener("submit", submitPassword);
 initialize();
