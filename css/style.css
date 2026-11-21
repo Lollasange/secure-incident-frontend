@@ -40,3 +40,12 @@ dt { font-weight:600; color:#64748b; font-size:13px; } dd { margin:7px 0 0; }
 .subpanel button { margin-top:14px; }
 .comment { padding:15px 0; border-bottom:1px solid #e2e8f0; } .comment strong { font-size:13px; }
 @media(max-width:650px) { .app-header { align-items:flex-start; flex-direction:column; } .panel { padding:17px; } .detail-grid { grid-template-columns:1fr; } }
+
+/* Admin / audit additions */
+.user-actions { display:flex; flex-wrap:wrap; gap:7px; min-width:175px; }
+.user-actions select { min-width:100px; width:auto; padding:7px; }
+.user-actions button { font-size:12px; padding:7px 9px; }
+.user-actions .danger { background:#b91c1c; }
+.user-actions .danger:hover:not(:disabled) { background:#991b1b; }
+.ok-message { color:#166534; font-weight:600; }
+.bad-message { color:#b91c1c; font-weight:600; }
