@@ -39,6 +39,9 @@
       <nav class="tabs" aria-label="Incident screens">
         <button id="showList" type="button" class="tab" aria-controls="listPanel">Incident List</button>
         <button id="showCreate" type="button" class="tab" aria-controls="createPanel">New Incident</button>
+        <button id="showPassword" type="button" class="tab" aria-controls="passwordPanel">Change Password</button>
+        <button id="showUsers" type="button" class="tab" aria-controls="usersPanel" hidden>Manage Users</button>
+        <button id="showAudit" type="button" class="tab" aria-controls="auditPanel" hidden>Audit Log</button>
       </nav>
       <p id="globalMessage" class="message" role="status" aria-live="polite"></p>
 
@@ -67,6 +70,45 @@
         <form id="statusForm" class="subpanel" hidden><h3>Reviewer: Update Status</h3><label for="statusSelect">New status</label><select id="statusSelect"><option value="open">Open</option><option value="under_review">Under review</option><option value="closed">Closed</option></select><button type="submit">Save Status</button><p id="statusMessage" role="status" class="message"></p></form>
         <h3>Comments</h3><div id="commentList" class="comments"></div>
         <form id="commentForm" class="subpanel" hidden><label for="commentBody">Add a comment (maximum 5,000 characters)</label><textarea id="commentBody" rows="4" maxlength="5000" required></textarea><button type="submit">Post Comment</button><p id="commentMessage" role="status" class="message"></p></form>
+      </section>
+
+      <section id="passwordPanel" class="panel" aria-labelledby="passwordHeading" hidden>
+        <h2 id="passwordHeading">Change Password</h2>
+        <form id="passwordForm">
+          <label for="currentPassword">Current password</label>
+          <input id="currentPassword" type="password" autocomplete="current-password" required maxlength="128">
+          <label for="newPassword">New password (12–128 characters)</label>
+          <input id="newPassword" type="password" autocomplete="new-password" required minlength="12" maxlength="128">
+          <label for="confirmPassword">Confirm new password</label>
+          <input id="confirmPassword" type="password" autocomplete="new-password" required minlength="12" maxlength="128">
+          <button type="submit" id="changePasswordButton">Change Password</button>
+          <p id="passwordMessage" class="message" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+
+      <section id="usersPanel" class="panel" aria-labelledby="usersHeading" hidden>
+        <div class="section-heading"><h2 id="usersHeading">User Management</h2><button type="button" id="refreshUsers" class="secondary">Refresh users</button></div>
+        <p class="muted">Administrators can create accounts and update other users. Your own row cannot be modified here.</p>
+        <div class="table-wrap"><table><thead><tr><th scope="col">ID</th><th scope="col">Username</th><th scope="col">Role</th><th scope="col">Account</th><th scope="col">Locked</th><th scope="col">Actions</th></tr></thead><tbody id="userRows"></tbody></table></div>
+        <p id="usersMessage" class="message" role="status" aria-live="polite"></p>
+        <form id="createUserForm" class="subpanel">
+          <h3>Create user</h3>
+          <label for="createUsername">Username (3–50 characters)</label>
+          <input id="createUsername" required minlength="3" maxlength="50" pattern="[A-Za-z0-9._-]+" autocomplete="off">
+          <label for="createUserPassword">Temporary password (12–128 characters)</label>
+          <input id="createUserPassword" type="password" required minlength="12" maxlength="128" autocomplete="new-password">
+          <label for="createUserRole">Role</label>
+          <select id="createUserRole"><option value="user">User</option><option value="reviewer">Reviewer</option><option value="admin">Administrator</option></select>
+          <button id="createUserButton" type="submit">Create user</button>
+          <p id="createUserMessage" class="message" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+
+      <section id="auditPanel" class="panel" aria-labelledby="auditHeading" hidden>
+        <div class="section-heading"><h2 id="auditHeading">Audit Log</h2><div class="toolbar"><button type="button" id="refreshAudit" class="secondary">Refresh</button><button type="button" id="verifyAudit">Verify integrity</button></div></div>
+        <p id="auditVerifyResult" class="message" role="status" aria-live="polite"></p>
+        <div class="table-wrap"><table><thead><tr><th scope="col">ID</th><th scope="col">Time (local)</th><th scope="col">User</th><th scope="col">Action</th><th scope="col">Target</th><th scope="col">Hash</th></tr></thead><tbody id="auditRows"></tbody></table></div>
+        <p id="auditMessage" class="message" role="status" aria-live="polite"></p>
       </section>
     </main>
   </div>
