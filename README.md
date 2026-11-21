@@ -19,11 +19,26 @@ On the team's HTTPS site, use ordinary `/` (no preview parameter). The app calls
 - `GET /api/incidents/{id}`
 - Reviewer: `PATCH /api/incidents/{id}/status` (passes `version`)
 - Reviewer/admin: `POST /api/incidents/{id}/comments`
+- Account: `POST /api/auth/password`
+- Admin: `GET/POST /api/admin/users`, `PATCH /api/admin/users/{id}`
+- Admin: `GET /api/admin/audit?limit=200`, `GET /api/admin/audit/verify`
 
 ## Scope and follow-ups
 
-This package implements login/logout and incident list, create, detail, review status, and comments UI. **Not yet implemented:** change password, administrator user management, and audit logs. Backend has to enforce authorization; UI role visibility is not a security boundary.
+This package includes login/logout; incident list, create, detail, reviewer status, and comments; change password for all roles; administrator user creation, role changes, activation/deactivation, password reset; and audit-log listing and integrity verification. All endpoints require integration testing. Backend must enforce authorization; UI role visibility is not a security boundary.
 
 ## Security notes
 
 No inline CSS/JS, no external CDN; API text displayed with `textContent`, not `innerHTML`; same-origin credentials; no browser token storage. Review CSP behavior, error UX, CSRF protections (with teammate), and test 401/403/404/409 responses during integration. Don't use actual incident or personal data in tests.
+
+## GitHub update
+
+Upload the updated `index.html`, `css/style.css`, `js/app.js`, `js/incidents.js`, `js/admin.js`, `js/api.js`, and README to your existing frontend GitHub repository. This is a static website; GitHub upload does not deploy to EC2 automatically.
+
+## Security / release checklist
+
+- Remove `?preview=` handling and hard-coded example records before production deployment (or ensure preview is disabled on production).
+- All preview mutations are disabled; verify behavior using a live HTTPS staging backend.
+- Test login/logout, 401/403/404/409 errors, user role restrictions, password policy, lockouts, audit verification, and XSS payloads using dummy accounts.
+- No credentials, tokens, secrets, or real incident data should be committed.
+- Confirm server-side authorization and CSRF protection with the backend developer; frontend hiding buttons is not authorization.
