@@ -23,7 +23,7 @@ function element(tag, text, className) {
   return el;
 }
 function show(which) {
-  for (const name of ["list", "create", "detail"]) $(name + "Panel").hidden = which !== name;
+  for (const name of ["list", "create", "detail", "password", "users", "audit"]) $(name + "Panel").hidden = which !== name;
   $("showList").setAttribute("aria-current", which === "list" ? "page" : "false");
   $("showCreate").setAttribute("aria-current", which === "create" ? "page" : "false");
 }
@@ -164,6 +164,7 @@ function wireOnce() {
   $("statusForm").addEventListener("submit", submitStatus);
   $("commentForm").addEventListener("submit", submitComment);
 }
+export function showIncidentPanel(which = "list") { show(which); if (which === "list") loadList(); }
 export function clearIncidents() {
   generation++;
   selected = null;
