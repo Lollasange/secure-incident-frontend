@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Secure Incident Reporting</title>
   <link rel="stylesheet" href="./css/style.css">
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml"> 
   <script type="module" src="./js/app.js"></script>
 </head>
 <body>
@@ -23,7 +24,6 @@
         <button id="loginButton" type="submit">Sign In</button>
         <p id="loginError" role="alert" class="error"></p>
       </form>
-      <p class="muted small">For UI-only testing, add <code>?preview=reviewer</code> to this page's URL.</p>
     </section>
   </main>
 
@@ -33,7 +33,6 @@
       <div class="account-actions"><span id="currentUser"></span><span id="currentRole" class="badge"></span><button id="logoutButton" type="button" class="secondary">Log Out</button></div>
     </header>
     <main class="dashboard">
-      <div id="previewNotice" class="preview-notice" hidden>PREVIEW MODE — sample data only. No requests are sent to the backend. Changes are disabled.</div>
       <h1>Incident Management</h1>
       <p class="muted">Submit and track incidents based on your assigned role.</p>
       <nav class="tabs" aria-label="Incident screens">
@@ -91,10 +90,20 @@
         <p class="muted">Administrators can create accounts and update other users. Your own row cannot be modified here.</p>
         <div class="table-wrap"><table><thead><tr><th scope="col">ID</th><th scope="col">Username</th><th scope="col">Role</th><th scope="col">Account</th><th scope="col">Locked</th><th scope="col">Actions</th></tr></thead><tbody id="userRows"></tbody></table></div>
         <p id="usersMessage" class="message" role="status" aria-live="polite"></p>
+	<form id="resetPasswordForm" class="subpanel" hidden>
+  	 <h3 id="resetHeading">Reset password</h3>
+  	 <label for="resetPassword">New temporary password (12–128 characters)</label>
+  	 <input id="resetPassword" type="password" required minlength="12" maxlength="128" autocomplete="new-password">
+  	 <div class="form-actions">
+          <button id="resetPasswordButton" type="submit">Reset password</button>
+    	  <button id="cancelReset" type="button" class="secondary">Cancel</button>
+ 	 </div>
+  	 <p id="resetPasswordMessage" class="message" role="status" aria-live="polite"></p>
+	</form>
         <form id="createUserForm" class="subpanel">
           <h3>Create user</h3>
           <label for="createUsername">Username (3–50 characters)</label>
-          <input id="createUsername" required minlength="3" maxlength="50" pattern="[A-Za-z0-9._-]+" autocomplete="off">
+          <input id="createUsername" required minlength="3" maxlength="50" pattern="[A-Za-z0-9._\-]+" autocomplete="off">
           <label for="createUserPassword">Temporary password (12–128 characters)</label>
           <input id="createUserPassword" type="password" required minlength="12" maxlength="128" autocomplete="new-password">
           <label for="createUserRole">Role</label>

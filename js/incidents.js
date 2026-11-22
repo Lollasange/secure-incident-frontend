@@ -1,14 +1,8 @@
 import { api } from "./api.js";
 const $ = id => document.getElementById(id);
 const STATUS_LABEL = { open: "Open", under_review: "Under review", closed: "Closed" };
-const sample = [
-  { id: 101, title: "Lost access badge", description: "A test badge was reported missing near the lobby. Sample incident only.", status: "open", version: 1, created_by: "sample_user", created_at: "2026-11-19T16:15:00Z", updated_at: "2026-11-19T16:15:00Z" },
-  { id: 102, title: "Suspicious email reported", description: "Employee reported a suspicious test email. Sample data only.", status: "under_review", version: 2, created_by: "sample_user", created_at: "2026-11-18T14:30:00Z", updated_at: "2026-11-19T09:00:00Z" },
-  { id: 103, title: "Door left unsecured", description: "Sample closed incident.", status: "closed", version: 3, created_by: "sample_user", created_at: "2026-11-16T10:00:00Z", updated_at: "2026-11-17T10:00:00Z" }
-];
-const sampleComments = [{ id: 1, author: "sample_reviewer", body: "We are reviewing the report. Sample comment only.", created_at: "2026-11-19T09:15:00Z" }];
 let role = "user";
-let demo = false;
+let userId  = null;
 let expired = () => {};
 let selected = null;
 let generation = 0;
@@ -31,11 +25,6 @@ async function request(path, opts) {
   try { return await api(path, opts); }
   catch (e) { if (e.status === 401) expired(); throw e; }
 }
-function accessibleDemoIncidents() {
-  if (role === "user") return sample.filter(x => x.created_by === "sample_user");
-  if (role === "reviewer") return sample.filter(x => x.status !== "closed" || x.created_by === "sample_reviewer");
-  return sample;
-}
 async function loadList() {
   const token = generation;
   notice("", "globalMessage");
@@ -43,9 +32,7 @@ async function loadList() {
   $("incidentRows").replaceChildren();
   const filter = $("statusFilter").value;
   try {
-    const list = demo
-      ? accessibleDemoIncidents().filter(item => !filter || item.status === filter)
-      : await request("/incidents" + (filter ? "?status=" + encodeURIComponent(filter) : ""));
+    const list = await request("/incidents" + (filter ? "?status=" + encodeURIComponent(filter) : ""));
     if (token !== generation) return;
     for (const item of list) {
       const row = element("tr");
@@ -79,9 +66,7 @@ async function loadDetail(id) {
   const token = generation;
   notice("Loading incident details…");
   try {
-    const result = demo
-      ? { incident: accessibleDemoIncidents().find(item => item.id === id), comments: id === 102 ? sampleComments : [] }
-      : await request("/incidents/" + encodeURIComponent(id));
+    const result = await request("/incidents/" + encodeURIComponent(id));
     if (token !== generation) return;
     if (!result.incident) throw new Error("Incident not found.");
     selected = result.incident;
@@ -94,11 +79,8 @@ async function loadDetail(id) {
     $("statusSelect").value = selected.status;
     $("statusForm").hidden = role !== "reviewer";
     $("commentForm").hidden = !["reviewer", "admin"].includes(role);
-    $("statusSelect").disabled = demo;
-    $("statusForm").querySelector("button").disabled = demo;
-    $("commentBody").disabled = demo;
-    $("commentForm").querySelector("button").disabled = demo;
-    notice(demo ? "Preview only: status changes and comments are disabled." : "", "statusMessage");
+    $("statusForm").querySelector("button").disabled = true;
+    notice("", "statusMessage");
     notice("", "commentMessage");
     renderComments(result.comments || []);
     notice("");
@@ -111,7 +93,6 @@ async function loadDetail(id) {
 }
 async function submitCreate(event) {
   event.preventDefault();
-  if (demo) { notice("Preview only. No incident was submitted.", "createMessage"); return; }
   const title = $("incidentTitle").value.trim();
   const description = $("incidentDescription").value.trim();
   if (!title || !description) { notice("Title and description are required.", "createMessage"); return; }
@@ -128,7 +109,7 @@ async function submitCreate(event) {
 }
 async function submitStatus(event) {
   event.preventDefault();
-  if (demo || role !== "reviewer" || !selected) return;
+  if (role !== "reviewer" || !selected) return;
   const id = selected.id;
   try {
     await request(`/incidents/${encodeURIComponent(id)}/status`, { method: "PATCH", body: { status: $("statusSelect").value, version: selected.version } });
@@ -141,7 +122,7 @@ async function submitStatus(event) {
 }
 async function submitComment(event) {
   event.preventDefault();
-  if (demo || !["reviewer", "admin"].includes(role) || !selected) return;
+  if (!["reviewer", "admin"].includes(role) || !selected) return;
   const body = $("commentBody").value.trim();
   if (!body) { notice("Comment cannot be empty.", "commentMessage"); return; }
   const id = selected.id;
@@ -162,6 +143,9 @@ function wireOnce() {
   $("statusFilter").addEventListener("change", loadList);
   $("createForm").addEventListener("submit", submitCreate);
   $("statusForm").addEventListener("submit", submitStatus);
+  $("statusForm").addEventListener("change", () => {
+	  $("statusForm").querySelector("button").disabled = !selected || $("statusSelect").value === selected.status;
+  })
   $("commentForm").addEventListener("submit", submitComment);
 }
 export function showIncidentPanel(which = "list") { show(which); if (which === "list") loadList(); }
@@ -174,17 +158,14 @@ export function clearIncidents() {
   $("commentForm").reset();
   notice("");
 }
-export function startIncidents({ user, demo: preview, onExpired }) {
+export function startIncidents({ user, onExpired }) {
   generation++;
   role = user.role;
-  demo = preview;
+  userId = user.id;
   expired = onExpired;
   selected = null;
   $("statusFilter").value = "";
-  $("incidentTitle").disabled = demo;
-  $("incidentDescription").disabled = demo;
-  $("submitIncident").disabled = demo;
-  notice(demo ? "Preview only: creating incidents is disabled." : "", "createMessage");
+  notice("", "createMessage");
   wireOnce();
   show("list");
   loadList();

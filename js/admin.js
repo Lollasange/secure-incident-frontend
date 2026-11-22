@@ -1,20 +1,10 @@
-/* Administrator and account screens. API integration requires HTTPS testing. */
+//* Administrator and account screens. API integration requires HTTPS testing. */
 import { api } from "./api.js";
 const $ = id => document.getElementById(id);
 let user = null;
-let demo = false;
+let resetTarget = null;
 let onExpired = () => {};
 let generation = 0;
-const sampleUsers = [
-  { id: 99, username: "sample_admin", role: "admin", is_active: true, locked_until: null },
-  { id: 100, username: "sample_reviewer", role: "reviewer", is_active: true, locked_until: null },
-  { id: 101, username: "sample_user", role: "user", is_active: true, locked_until: null },
-  { id: 102, username: "sample_inactive", role: "user", is_active: false, locked_until: null }
-];
-const sampleAudit = [
-  { id: 11, user_id: 100, username: "sample_reviewer", action: "STATUS_CHANGED", target_type: "incident", target_id: 102, created_at: "2026-11-19T10:00:00Z", hash: "abcdef1234567890" },
-  { id: 10, user_id: 99, username: "sample_admin", action: "USER_CREATED", target_type: "user", target_id: 101, created_at: "2026-11-18T10:00:00Z", hash: "12345678abcdef00" }
-];
 function node(tag, value, cls) {
   const el = document.createElement(tag);
   if (value !== undefined) el.textContent = String(value);
@@ -33,23 +23,49 @@ async function request(path, options) {
   catch (e) { if (e.status === 401) onExpired(); throw e; }
 }
 function isAdmin() { return !!user && user.role === "admin"; }
-function previewGuard(messageId) {
-  if (demo) { report(messageId, "Preview only. No request was sent."); return true; }
-  return false;
-}
+/* Returns true when the update succeeded. */
 async function modifyUser(id, changes) {
-  if (!isAdmin() || previewGuard("usersMessage")) return;
-  if (id === user.id) return report("usersMessage", "You cannot update your own account here.", "bad");
+  if (!isAdmin()) return false;
+  if (id === user.id) { report("usersMessage", "You cannot update your own account here.", "bad"); return false; }
   try {
     await request(`/admin/users/${encodeURIComponent(id)}`, { method: "PATCH", body: changes });
     report("usersMessage", "Account updated successfully.", "ok");
     await loadUsers(true);
-  } catch (e) { if (e.status !== 401) report("usersMessage", e.message, "bad"); }
+    return true;
+  } catch (e) {
+    if (e.status !== 401) report("usersMessage", e.message, "bad");
+    return false;
+  }
+}
+/* Password reset uses a masked form instead of window.prompt (which shows the password). */
+function openReset(row) {
+  resetTarget = row;
+  $("resetPasswordForm").reset();
+  $("resetHeading").textContent = `Reset password for ${row.username}`;
+  report("resetPasswordMessage", "");
+  $("resetPasswordForm").hidden = false;
+  $("resetPassword").focus();
+}
+export function closeReset() {
+  resetTarget = null;
+  $("resetPasswordForm").reset();
+  $("resetPasswordForm").hidden = true;
+  report("resetPasswordMessage", "");
+}
+export async function submitResetPassword(event) {
+  event.preventDefault();
+  if (!isAdmin() || !resetTarget) return;
+  const password = $("resetPassword").value;
+  if (password.length < 12 || password.length > 128) return report("resetPasswordMessage", "Password must be 12–128 characters.", "bad");
+  if (!window.confirm(`Reset ${resetTarget.username}'s password? They will be signed out everywhere.`)) return;
+  const button = $("resetPasswordButton"); button.disabled = true;
+  try {
+    if (await modifyUser(resetTarget.id, { password })) closeReset();
+  } finally { button.disabled = false; }
 }
 function actionsFor(row) {
   const cell = node("td");
   if (row.id === user.id) { cell.append(node("span", "Own account — no edits", "muted")); return cell; }
-  if (demo) { cell.append(node("span", "Preview only", "muted")); return cell; }
   const holder = node("div", undefined, "user-actions");
   const select = node("select");
   select.setAttribute("aria-label", `Role for ${row.username}`);
@@ -69,12 +85,7 @@ function actionsFor(row) {
   });
   const resetButton = node("button", "Reset password", "secondary");
   resetButton.type = "button";
-  resetButton.addEventListener("click", () => {
-    const password = window.prompt(`New temporary password for ${row.username} (12–128 characters):`);
-    if (password === null) return;
-    if (password.length < 12 || password.length > 128) return report("usersMessage", "Password must be 12–128 characters.", "bad");
-    if (window.confirm(`Confirm resetting ${row.username}'s password?`)) modifyUser(row.id, { password });
-  });
+  resetButton.addEventListener("click", () => openReset(row));
   holder.append(select, roleButton, activeButton, resetButton);
   cell.append(holder);
   return cell;
@@ -85,7 +96,7 @@ export async function loadUsers(keepMessage = false) {
   $("userRows").replaceChildren();
   if (!keepMessage) report("usersMessage", "Loading users…");
   try {
-    const rows = demo ? sampleUsers : await request("/admin/users");
+    const rows = await request("/admin/users");
     if (token !== generation) return;
     for (const row of rows) {
       const tr = node("tr");
@@ -99,7 +110,7 @@ export async function loadUsers(keepMessage = false) {
 }
 export async function submitCreateUser(event) {
   event.preventDefault();
-  if (!isAdmin() || previewGuard("createUserMessage")) return;
+  if (!isAdmin() ) return;
   const username = $("createUsername").value.trim();
   const password = $("createUserPassword").value;
   const role = $("createUserRole").value;
@@ -120,7 +131,7 @@ export async function loadAudit() {
   $("auditRows").replaceChildren();
   report("auditMessage", "Loading audit entries…");
   try {
-    const entries = demo ? sampleAudit : await request("/admin/audit?limit=200");
+    const entries = await request("/admin/audit?limit=200");
     if (token !== generation) return;
     for (const entry of entries) {
       const tr = node("tr");
@@ -131,7 +142,7 @@ export async function loadAudit() {
   } catch (e) { if (e.status !== 401) report("auditMessage", e.message, "bad"); }
 }
 export async function verifyAudit() {
-  if (!isAdmin() || previewGuard("auditVerifyResult")) return;
+  if (!isAdmin() ) return;
   try {
     report("auditVerifyResult", "Verifying audit integrity…");
     const result = await request("/admin/audit/verify");
@@ -142,7 +153,6 @@ export async function verifyAudit() {
 }
 export async function submitPassword(event) {
   event.preventDefault();
-  if (previewGuard("passwordMessage")) return;
   const current_password = $("currentPassword").value;
   const new_password = $("newPassword").value;
   if (new_password !== $("confirmPassword").value) return report("passwordMessage", "New passwords do not match.", "bad");
@@ -151,7 +161,7 @@ export async function submitPassword(event) {
   try {
     await request("/auth/password", { method: "POST", body: { current_password, new_password } });
     $("passwordForm").reset();
-    report("passwordMessage", "Password updated successfully.", "ok");
+    report("passwordMessage", "Password updated. Your other sessions were signed out.", "ok");
   } catch (e) { if (e.status !== 401) report("passwordMessage", e.message, "bad"); }
   finally { button.disabled = false; }
 }
@@ -162,20 +172,13 @@ export function clearAdmin() {
   $("auditRows").replaceChildren();
   $("createUserForm").reset();
   $("passwordForm").reset();
+  closeReset();
   for (const id of ["usersMessage", "createUserMessage", "auditMessage", "auditVerifyResult", "passwordMessage"]) report(id, "");
 }
-export function startAdmin({ user: currentUser, demo: preview, onExpired: expired }) {
+export function startAdmin({ user: currentUser, onExpired: expired }) {
   generation++;
   user = currentUser;
-  demo = preview;
   onExpired = expired;
   $("showUsers").hidden = !isAdmin();
   $("showAudit").hidden = !isAdmin();
-  $("createUserButton").disabled = demo;
-  $("changePasswordButton").disabled = demo;
-  $("verifyAudit").disabled = demo;
-  if (demo) {
-    report("createUserMessage", "Preview only. Creating users is disabled.");
-    report("passwordMessage", "Preview only. Password changes are disabled.");
-  }
 }

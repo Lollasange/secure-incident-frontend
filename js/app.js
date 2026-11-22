@@ -1,10 +1,8 @@
 import { api } from "./api.js";
 import { startIncidents, clearIncidents, showIncidentPanel } from "./incidents.js";
-import { startAdmin, clearAdmin, loadUsers, loadAudit, verifyAudit, submitCreateUser, submitPassword } from "./admin.js";
+import { startAdmin, clearAdmin, loadUsers, loadAudit, verifyAudit, submitCreateUser, submitPassword, submitResetPassword, closeReset } from "./admin.js";
 
 const $ = id => document.getElementById(id);
-const previewRole = new URLSearchParams(window.location.search).get("preview");
-const demo = ["user", "reviewer", "admin"].includes(previewRole);
 let currentUser = null;
 
 function screen(which) {
@@ -24,16 +22,13 @@ function showApp(user) {
   currentUser = user;
   $("currentUser").textContent = user.username;
   $("currentRole").textContent = user.role;
-  $("previewNotice").hidden = !demo;
-  $("logoutButton").textContent = demo ? "Exit Preview" : "Log Out";
   screen("app");
   const onExpired = () => showLogin("Your session expired. Please sign in again.");
-  startAdmin({ user, demo, onExpired });
-  startIncidents({ user, demo, onExpired });
+  startAdmin({ user, onExpired });
+  startIncidents({ user, onExpired });
 }
 $("loginForm").addEventListener("submit", async event => {
   event.preventDefault();
-  if (demo) return;
   const button = $("loginButton");
   button.disabled = true;
   $("loginError").textContent = "";
@@ -50,7 +45,6 @@ $("loginForm").addEventListener("submit", async event => {
   }
 });
 $("logoutButton").addEventListener("click", async () => {
-  if (demo) { window.location.assign(window.location.pathname); return; }
   try {
     await api("/auth/logout", { method: "POST" });
     showLogin();
@@ -60,15 +54,11 @@ $("logoutButton").addEventListener("click", async () => {
   }
 });
 async function initialize() {
-  if (demo) {
-    showApp({ id: 99, username: "sample_" + previewRole, role: previewRole });
-    return;
-  }
   screen("loading");
   try {
     showApp(await api("/auth/me"));
   } catch (e) {
-    showLogin(e.status === 401 ? "" : "Backend unavailable on this server. For a UI preview, add ?preview=reviewer to the URL.");
+    showLogin(e.status === 401 ? "" : "The service is unavailable right now. Please try again later.");
   }
 }
 // Shared navigation: the incident module owns incident panels;
@@ -81,4 +71,6 @@ $("refreshAudit").addEventListener("click", loadAudit);
 $("verifyAudit").addEventListener("click", verifyAudit);
 $("createUserForm").addEventListener("submit", submitCreateUser);
 $("passwordForm").addEventListener("submit", submitPassword);
+$("resetPasswordForm").addEventListener("submit", submitResetPassword);
+$("cancelReset").addEventListener("click", closeReset);
 initialize();
